@@ -17,6 +17,24 @@ public class ExchangeRateLogRepository : IExchangeRateLogRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<bool> HasAnyDataAsync()
+    {
+        return await _context.ExchangeRateLogs.AnyAsync();
+    }
+
+    public async Task<int> GetRecordCountAsync()
+    {
+        return await _context.ExchangeRateLogs.CountAsync();
+    }
+
+    public async Task<DateTime?> GetLastSyncTimeAsync()
+    {
+        return await _context.ExchangeRateLogs
+            .OrderByDescending(e => e.RetrievedAt)
+            .Select(e => e.RetrievedAt)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task AddAsync(ExchangeRateLog log)
     {
         await _context.ExchangeRateLogs.AddAsync(log);

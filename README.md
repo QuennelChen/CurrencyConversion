@@ -1,15 +1,15 @@
-# Currency Conversion API
+# 貨幣轉換 API
 
-This project provides a simple ASP.NET Core Web API for recording and querying currency exchange rates.
+此專案提供一個簡單的 ASP.NET Core Web API，用於記錄和查詢匯率。
 
-## Prerequisites
+## 先決條件
 
 - .NET 7 SDK
 - Microsoft SQL Server
 
-## Setup
+## 設定
 
-1. Restore packages and create database migrations:
+1. 還原套件並建立資料庫遷移：
 
 ```bash
 dotnet restore
@@ -17,22 +17,22 @@ cd src/CurrencyConversion.Api
 dotnet ef migrations add InitialCreate
 ```
 
-2. Apply migrations and run the API:
+2. 套用遷移並執行 API：
 
 ```bash
 dotnet ef database update
 dotnet run
 ```
 
-The daily synchronization job runs at the time specified in `appsettings.json` under `Schedule:DailyTime`.
+每日同步作業會在 `appsettings.json` 中 `Schedule:DailyTime` 設定的時間執行。
 
-## Configuration
+## 組態
 
-`appsettings.json` contains placeholders for database connection string, external API key and authentication options. Replace them with your actual values before running the application.
+`appsettings.json` 包含資料庫連接字串、外部 API 金鑰和身份驗證選項的佔位符。在執行應用程式之前，請將其替換為您的實際值。
 
-## Testing
+## 測試
 
-Example unit tests reside in `tests/CurrencyConversion.Tests`. Execute them with:
+範例單元測試位於 `tests/CurrencyConversion.Tests` 中。執行測試：
 
 ```bash
 dotnet test

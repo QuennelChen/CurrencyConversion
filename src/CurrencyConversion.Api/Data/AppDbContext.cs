@@ -26,10 +26,12 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Rate).HasColumnType("decimal(18,6)");
             entity.HasOne(e => e.BaseCurrency)
                 .WithMany(c => c.BaseRateLogs)
-                .HasForeignKey(e => e.BaseCurrencyId);
+                .HasForeignKey(e => e.BaseCurrencyId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.TargetCurrency)
                 .WithMany(c => c.TargetRateLogs)
-                .HasForeignKey(e => e.TargetCurrencyId);
+                .HasForeignKey(e => e.TargetCurrencyId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

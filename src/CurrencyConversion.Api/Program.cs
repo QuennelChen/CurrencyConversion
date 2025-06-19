@@ -12,29 +12,35 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 添加控制器服務
 builder.Services.AddControllers();
 
+// 添加健康檢查
+builder.Services.AddHealthChecks()
+    .AddSqlServer(builder.Configuration.GetConnectionString("Default")!, name: "database")
+    .AddCheck<ExternalApiHealthCheck>("external-api");
+
+// 設定組態選項
 builder.Services.Configure<ExternalApiOptions>(builder.Configuration.GetSection(ExternalApiOptions.SectionName));
 builder.Services.Configure<ScheduleOptions>(builder.Configuration.GetSection(ScheduleOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 
+// 設定資料庫內容
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
+// 註冊存放庫和服務
 builder.Services.AddScoped<ICurrencyRepository, CurrencyRepository>();
 builder.Services.AddScoped<IExchangeRateLogRepository, ExchangeRateLogRepository>();
 builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
 
-builder.Services.AddHttpClient<IExternalRateProvider, ExchangeRateHostProvider>((sp, client) =>
-{
-    var opts = sp.GetRequiredService<IOptions<ExternalApiOptions>>().Value;
-    client.BaseAddress = new Uri(opts.BaseUrl);
-    if (!string.IsNullOrEmpty(opts.ApiKey))
-        client.DefaultRequestHeaders.Add("apikey", opts.ApiKey);
-});
+// 設定 HTTP 客戶端用於外部匯率提供者 (tw.rter.info)
+builder.Services.AddHttpClient<IExternalRateProvider, RterRateProvider>();
 
+// 註冊每日同步背景服務
 builder.Services.AddHostedService<DailySyncService>();
 
+// 設定身份驗證
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>();
 if (authOptions?.Scheme == "Jwt")
 {
@@ -47,35 +53,47 @@ if (authOptions?.Scheme == "Jwt")
                 ValidateAudience = false,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(authOptions.JwtSecret ?? "secret"))
-            };
+                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(authOptions.JwtSecret ?? "secret"))            };
         });
 }
 else
 {
+    // 使用 API 金鑰身份驗證
     builder.Services.AddAuthentication("ApiKey");
 }
 
+// 設定 API 文件
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Currency API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "貨幣 API", Version = "v1" });
 });
 
 var app = builder.Build();
 
+// 確保資料庫已遷移並初始化種子資料
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    logger.LogInformation("正在檢查資料庫狀態");
     db.Database.Migrate();
+    
+    // 初始化基本貨幣資料
+    await DatabaseSeeder.SeedCurrenciesAsync(db, logger);
 }
 
+// 設定中介軟體管道
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 健康檢查端點
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 
