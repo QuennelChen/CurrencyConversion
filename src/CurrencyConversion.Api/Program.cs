@@ -21,7 +21,6 @@ builder.Services.AddHealthChecks()
     .AddCheck<ExternalApiHealthCheck>("external-api");
 
 // 設定組態選項
-builder.Services.Configure<ExternalApiOptions>(builder.Configuration.GetSection(ExternalApiOptions.SectionName));
 builder.Services.Configure<ScheduleOptions>(builder.Configuration.GetSection(ScheduleOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 

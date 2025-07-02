@@ -115,7 +115,8 @@ public class ExchangeRateController : ControllerBase
             rate = log.Rate,
             timestamp = log.RetrievedAt
         });
-    }    /// <summary>
+    }    
+    /// <summary>
     /// 立即同步匯率
     /// </summary>
     /// <returns>同步結果</returns>
