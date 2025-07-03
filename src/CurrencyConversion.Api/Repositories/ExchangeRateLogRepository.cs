@@ -17,6 +17,16 @@ public class ExchangeRateLogRepository : IExchangeRateLogRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<List<ExchangeRateLog>> GetLatestRatesForBaseCurrencyAsync(int baseCurrencyId)
+    {
+        return await _context.ExchangeRateLogs
+            .Where(e => e.BaseCurrencyId == baseCurrencyId)
+            .GroupBy(e => e.TargetCurrencyId)
+            .Select(g => g.OrderByDescending(e => e.RetrievedAt).First())
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<bool> HasAnyDataAsync()
     {
         return await _context.ExchangeRateLogs.AnyAsync();

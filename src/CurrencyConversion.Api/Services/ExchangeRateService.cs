@@ -1,5 +1,6 @@
 using CurrencyConversion.Api.Models;
 using CurrencyConversion.Api.Repositories;
+using System.Linq;
 
 namespace CurrencyConversion.Api.Services;
 
@@ -91,16 +92,15 @@ public class ExchangeRateService : IExchangeRateService
         if (baseCurrency == null) return null;
 
         var currencies = await GetCurrenciesAsync();
+        var currencyMap = currencies.ToDictionary(c => c.Id, c => c.Code);
+        var logs = await _logRepo.GetLatestRatesForBaseCurrencyAsync(baseCurrency.Id);
         var rates = new Dictionary<string, decimal>();
 
-        foreach (var targetCurrency in currencies)
+        foreach (var log in logs)
         {
-            if (targetCurrency.Code == baseCurrencyCode) continue;
-
-            var log = await _logRepo.GetLatestRateAsync(baseCurrency.Id, targetCurrency.Id);
-            if (log != null)
+            if (currencyMap.TryGetValue(log.TargetCurrencyId, out var code))
             {
-                rates[targetCurrency.Code] = log.Rate;
+                rates[code] = log.Rate;
             }
         }
 
