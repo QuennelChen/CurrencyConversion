@@ -1,6 +1,7 @@
 using CurrencyConversion.Api.Services;
 using CurrencyConversion.Api.Repositories;
 using CurrencyConversion.Api.HostedServices;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -41,27 +42,29 @@ public class ExchangeRateController : ControllerBase
         var currencies = await currencyRepo.GetAllAsync();
         var baseCur = currencies.FirstOrDefault(c => c.Code == baseCurrency);
         if (baseCur == null) return BadRequest("無效的 baseCurrency");
-        
-        var result = new Dictionary<string, object>();
+
+        var currencyMap = currencies.ToDictionary(c => c.Id, c => c.Code);
+        var logs = await logRepo.GetLatestRatesForBaseCurrencyAsync(baseCur.Id);
         var rates = new Dictionary<string, decimal>();
         DateTime? lastUpdate = null;
-        
-        foreach (var target in currencies)
+
+        foreach (var log in logs)
         {
-            if (target.Code == baseCurrency) continue;
-            var log = await logRepo.GetLatestRateAsync(baseCur.Id, target.Id);
-            if (log != null)
+            if (currencyMap.TryGetValue(log.TargetCurrencyId, out var code))
             {
-                rates[target.Code] = log.Rate;
+                rates[code] = log.Rate;
                 if (lastUpdate == null || log.RetrievedAt > lastUpdate)
                     lastUpdate = log.RetrievedAt;
             }
         }
-        
-        result["baseCurrency"] = baseCurrency;
-        result["rates"] = rates;
-        result["lastUpdate"] = lastUpdate;
-        result["dataAge"] = lastUpdate.HasValue ? (TimeSpan?)(DateTime.UtcNow - lastUpdate.Value) : null;
+
+        var result = new Dictionary<string, object>
+        {
+            ["baseCurrency"] = baseCurrency,
+            ["rates"] = rates,
+            ["lastUpdate"] = lastUpdate,
+            ["dataAge"] = lastUpdate.HasValue ? (TimeSpan?)(DateTime.UtcNow - lastUpdate.Value) : null
+        };
         
         return Ok(result);
     }

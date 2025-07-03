@@ -37,3 +37,13 @@ dotnet run
 ```bash
 dotnet test
 ```
+
+## CLI 使用
+
+本專案包含一個 `CurrencyConversion.Cli` 主控台程式，可透過 API 快速進行貨幣轉換。先啟動 API 後，在專案根目錄執行：
+
+```bash
+dotnet run --project src/CurrencyConversion.Cli -- --from USD --to TWD --amount 100
+```
+
+可選擇使用 `--api` 指定 API 位址（預設為 `http://localhost:5000`）。
